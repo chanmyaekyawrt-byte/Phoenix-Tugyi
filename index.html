@@ -33,10 +33,16 @@
         let count = 1;
         let currentConf = "";
 
-        // WireGuard လက်ခံသော Valid Base64 Private Key ထုတ်ပေးသည့် Function အစစ်
+        // WireGuard က လက်ခံသော Curve25519 Private Key အစစ်ကို ထုတ်ပေးသည့် စနစ်
         function generateWGKey() {
             const bytes = new Uint8Array(32);
             window.crypto.getRandomValues(bytes);
+            
+            // Curve25519 key clamping (လိုအပ်သော bit များကို ချိန်ညှိခြင်း)
+            bytes[0] &= 248;
+            bytes[31] &= 127;
+            bytes[31] |= 64;
+
             let binary = "";
             for (let b of bytes) binary += String.fromCharCode(b);
             return btoa(binary);
@@ -44,38 +50,44 @@
 
         function generateConfig() {
             const btn = document.getElementById('btn');
-            btn.innerText = "Processing...";
+            btn.innerText = "Connecting...";
             
             setTimeout(() => {
                 const privKey = generateWGKey();
-                // Cloudflare အလုပ်လုပ်မည့် PublicKey အမှန်
+                // Cloudflare WGCF Endpoint PublicKey အမှန်
                 const pubKey = "bmXOC+F1FxEMF9dyiK2H5/1SU6kM2D5v7S3mR4zU9cE=";
                 
-                // Config format အမှန် (စာသားဖျောက်ရန် UI တွင် မပြတော့ပါ)
-                currentConf = `[Interface]\nPrivateKey = ${privKey}\nAddress = 172.16.0.2/32\nDNS = 1.1.1.1\nMTU = 1280\n\n[Peer]\nPublicKey = ${pubKey}\nAllowedIPs = 0.0.0.0/0\nEndpoint = 162.159.192.10:500`;
+                // Config Format အမှန် (လိုင်းတက်ရန် အဓိကကျသော အပိုင်း)
+                currentConf = `[Interface]\nPrivateKey = ${privKey}\nAddress = 172.16.0.2/32\nDNS = 1.1.1.1, 1.0.0.1\nMTU = 1280\n\n[Peer]\nPublicKey = ${pubKey}\nAllowedIPs = 0.0.0.0/0\nEndpoint = 162.159.192.10:2408`;
                 
                 const qrContainer = document.getElementById('qrcode-container');
                 qrContainer.innerHTML = ""; 
-                const el = kjua({ render: 'canvas', text: currentConf, size: 400, fill: '#000000', back: '#ffffff', rounded: 10 });
+                const el = kjua({ render: 'canvas', text: currentConf, size: 400, fill: '#000000', back: '#ffffff', rounded: 8 });
                 qrContainer.appendChild(el);
                 
                 document.getElementById('result').classList.remove('hidden');
                 btn.innerText = "Regenerate";
-            }, 400);
+            }, 500);
         }
 
         function downloadFile() {
             if (!currentConf) return;
             const filename = `Phoenix_${count}.conf`;
-            // .txt မဖြစ်စေရန် octet-stream ကို အသုံးပြုခြင်း
-            const blob = new Blob([currentConf], { type: 'application/octet-stream' });
+            
+            // Chrome Mobile တွင် .txt မဖြစ်စေရန် Blob type ကို application/config အဖြစ် သတ်မှတ်ခြင်း
+            const blob = new Blob([currentConf], { type: 'application/config' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = filename;
             document.body.appendChild(a);
             a.click();
-            setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 500);
+            
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 500);
+            
             count++;
             document.getElementById('dlBtn').innerText = "Downloaded ✅";
             setTimeout(() => { document.getElementById('dlBtn').innerText = "Download .conf File"; }, 2000);
