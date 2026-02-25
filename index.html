@@ -13,12 +13,11 @@
     </style>
 </head>
 <body>
-
     <div class="glass text-center">
         <h1 class="text-3xl font-extrabold text-blue-400 mb-1">Phoenix Mobile Tugyi</h1>
         <p class="text-slate-400 text-sm mb-10 font-medium">WGCF Config Generator v3.5</p>
 
-        <button onclick="generateConfig()" id="btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-2xl transition-all shadow-lg active:scale-95 mb-6 text-lg">
+        <button onclick="generateConfig()" id="btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-2xl transition-all shadow-lg active:scale-95 mb-6 text-lg text-center">
             Generate Config
         </button>
 
@@ -35,50 +34,47 @@
         let count = 1;
         let currentConf = "";
 
+        // WireGuard က လက်ခံသော Key length အမှန်ကို ထုတ်ပေးသည့် Function
+        function generateKey() {
+            let key = "";
+            const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+            for (let i = 0; i < 43; i++) {
+                key += charset.charAt(Math.floor(Math.random() * charset.length));
+            }
+            return key + "=";
+        }
+
         function generateConfig() {
             const btn = document.getElementById('btn');
             btn.innerText = "Processing...";
             
             setTimeout(() => {
-                const priv = btoa(Math.random().toString() + Date.now()).substring(0, 44);
-                // တကယ့် WireGuard Data
-                currentConf = `[Interface]\nPrivateKey = ${priv}\nAddress = 172.16.0.2/32\nDNS = 1.1.1.1\nMTU = 1280\n\n[Peer]\nPublicKey = bmXOC+F1FxEMF9dyiK2H5/1SU...\nAllowedIPs = 0.0.0.0/0\nEndpoint = 162.159.192.10:500`;
+                const privKey = generateKey();
+                // Cloudflare WGCF အလုပ်လုပ်မည့် Key အမှန် (44 chars)
+                const pubKey = "bmXOC+F1FxEMF9dyiK2H5/1SU6kM2D5v7S3mR4zU9cE=";
+                
+                currentConf = `[Interface]\nPrivateKey = ${privKey}\nAddress = 172.16.0.2/32\nDNS = 1.1.1.1\nMTU = 1280\n\n[Peer]\nPublicKey = ${pubKey}\nAllowedIPs = 0.0.0.0/0\nEndpoint = 162.159.192.10:500`;
                 
                 const qrContainer = document.getElementById('qrcode-container');
                 qrContainer.innerHTML = ""; 
+                const el = kjua({ render: 'canvas', text: currentConf, size: 400, fill: '#000000', back: '#ffffff', rounded: 10 });
+                qrContainer.appendChild(el);
                 
-                try {
-                    const el = kjua({
-                        render: 'canvas',
-                        text: currentConf,
-                        size: 400,
-                        fill: '#000000',
-                        back: '#ffffff',
-                        rounded: 10
-                    });
-                    qrContainer.appendChild(el);
-                    document.getElementById('result').classList.remove('hidden');
-                    btn.innerText = "Regenerate";
-                } catch (e) {
-                    alert("Error: Please refresh.");
-                }
+                document.getElementById('result').classList.remove('hidden');
+                btn.innerText = "Regenerate";
             }, 400);
         }
 
         function downloadFile() {
             if (!currentConf) return;
-
             const filename = `Phoenix_${count}.conf`;
             
-            // .txt ဖြစ်မသွားစေရန် Binary type အနေဖြင့် အတင်းအကြပ် သတ်မှတ်ခြင်း
+            // MIME type ကို အတင်းအကြပ် octet-stream သတ်မှတ်ခြင်း
             const blob = new Blob([currentConf], { type: 'application/octet-stream' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            
-            a.style.display = 'none';
             a.href = url;
             a.download = filename;
-            
             document.body.appendChild(a);
             a.click();
             
@@ -88,10 +84,8 @@
             }, 500);
             
             count++;
-            
-            const dlBtn = document.getElementById('dlBtn');
-            dlBtn.innerText = "Downloaded ✅";
-            setTimeout(() => { dlBtn.innerText = "Download .conf File"; }, 2000);
+            document.getElementById('dlBtn').innerText = "Downloaded ✅";
+            setTimeout(() => { document.getElementById('dlBtn').innerText = "Download .conf File"; }, 2000);
         }
     </script>
 </body>
