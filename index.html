@@ -3,32 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phoenix Mobile v3.5</title>
+    <title>Phoenix Mobile Tugyi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/kjua@0.9.0/dist/kjua.min.js"></script>
     <style>
-        body { background-color: #0b1120; color: #f8fafc; font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .glass { background: #1e293b; border: 1px solid #334155; border-radius: 24px; padding: 2rem; width: 90%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-        #qrcode-container canvas { margin: 0 auto; border-radius: 12px; border: 8px solid white; }
+        body { background-color: #0b1120; color: #f8fafc; font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; overflow-x: hidden; }
+        .glass { background: #1e293b; border: 1px solid #334155; border-radius: 28px; padding: 2.5rem; width: 90%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); }
+        #qrcode-container canvas { margin: 0 auto; border-radius: 16px; border: 10px solid white; width: 100% !important; height: auto !important; max-width: 220px; }
     </style>
 </head>
 <body>
     <div class="glass text-center">
-        <h1 class="text-3xl font-extrabold text-blue-400 mb-1">Phoenix Mobile</h1>
-        <p class="text-slate-400 text-sm mb-8 font-medium">WGCF Config Generator v3.5</p>
+        <h1 class="text-3xl font-extrabold text-blue-400 mb-1">Phoenix Mobile Tugyi</h1>
+        <p class="text-slate-400 text-sm mb-10 font-medium">WGCF Config Generator v3.5</p>
 
         <button onclick="generateConfig()" id="btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-2xl transition-all shadow-lg active:scale-95 mb-6 text-lg">
             Generate Config
         </button>
 
-        <div id="result" class="hidden animate-in fade-in duration-500">
-            <div id="qrcode-container" class="flex justify-center mb-6"></div>
+        <div id="result" class="hidden animate-in fade-in zoom-in duration-300">
+            <div id="qrcode-container" class="mb-8"></div>
 
-            <div class="bg-black/40 rounded-xl p-4 mb-6 border border-slate-700 text-left">
-                <pre id="display" class="text-[10px] text-green-400 font-mono leading-tight overflow-x-auto max-h-32"></pre>
-            </div>
+            <div id="hidden-display" style="display:none;"></div>
 
-            <button onclick="downloadFile()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-2xl shadow-lg transition-all active:scale-95 text-lg">
+            <button onclick="downloadFile()" id="dlBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-2xl shadow-xl transition-all active:scale-95 text-lg border-b-4 border-emerald-800">
                 Download .conf File
             </button>
         </div>
@@ -46,17 +44,14 @@
                 const priv = btoa(Math.random().toString() + Date.now()).substring(0, 44);
                 currentConf = `[Interface]\nPrivateKey = ${priv}\nAddress = 172.16.0.2/32\nDNS = 1.1.1.1\nMTU = 1280\n\n[Peer]\nPublicKey = bmXOC+F1FxEMF9dyiK2H5/1SU...\nAllowedIPs = 0.0.0.0/0\nEndpoint = 162.159.192.10:500`;
                 
-                document.getElementById('display').innerText = currentConf;
-                
                 const qrContainer = document.getElementById('qrcode-container');
                 qrContainer.innerHTML = ""; 
                 
                 try {
-                    // kjua library ကို အသုံးပြု၍ QR Code ဆွဲခြင်း
                     const el = kjua({
                         render: 'canvas',
                         text: currentConf,
-                        size: 200,
+                        size: 400,
                         fill: '#000000',
                         back: '#ffffff',
                         rounded: 10
@@ -66,25 +61,42 @@
                     document.getElementById('result').classList.remove('hidden');
                     btn.innerText = "Regenerate";
                 } catch (e) {
-                    console.error(e);
-                    alert("Generating... Please wait a few seconds and try again.");
-                    btn.innerText = "Generate Config";
+                    alert("Error. Please refresh.");
                 }
-            }, 500);
+            }, 400);
         }
 
         function downloadFile() {
-            if(!currentConf) return;
+            if (!currentConf) return;
+
+            // ဒေါင်းလုဒ်ဆွဲသည့် အပိုင်းကို ပိုမိုအားကောင်းအောင် ပြင်ထားသည်
+            const filename = `Phoenix_${count}.conf`;
             const blob = new Blob([currentConf], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Phoenix_${count}.conf`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+            
+            // Android Chrome အတွက် သေချာစေသော နည်းလမ်း
+            if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+                window.navigator.msSaveOrOpenBlob(blob, filename);
+            } else {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 300);
+            }
+            
             count++;
+            // ခလုတ်နှိပ်လိုက်ကြောင်း သိသာစေရန် စာသားပြောင်းပေးခြင်း
+            const dlBtn = document.getElementById('dlBtn');
+            const originalText = dlBtn.innerText;
+            dlBtn.innerText = "Downloaded!";
+            setTimeout(() => { dlBtn.innerText = originalText; }, 2000);
         }
     </script>
 </body>
