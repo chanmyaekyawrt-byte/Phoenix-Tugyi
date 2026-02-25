@@ -17,13 +17,12 @@
         <h1 class="text-3xl font-extrabold text-blue-400 mb-1">Phoenix Mobile Tugyi</h1>
         <p class="text-slate-400 text-sm mb-10 font-medium">WGCF Config Generator v3.5</p>
 
-        <button onclick="generateConfig()" id="btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-2xl transition-all shadow-lg active:scale-95 mb-6 text-lg text-center">
+        <button onclick="generateConfig()" id="btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-2xl transition-all shadow-lg active:scale-95 mb-6 text-lg">
             Generate Config
         </button>
 
-        <div id="result" class="hidden animate-in fade-in zoom-in duration-300">
+        <div id="result" class="hidden">
             <div id="qrcode-container" class="mb-8 flex justify-center"></div>
-            
             <button onclick="downloadFile()" id="dlBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-2xl shadow-xl transition-all active:scale-95 text-lg border-b-4 border-emerald-800">
                 Download .conf File
             </button>
@@ -34,14 +33,16 @@
         let count = 1;
         let currentConf = "";
 
-        // WireGuard က လက်ခံသော Key length အမှန်ကို ထုတ်ပေးသည့် Function
-        function generateKey() {
-            let key = "";
-            const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-            for (let i = 0; i < 43; i++) {
-                key += charset.charAt(Math.floor(Math.random() * charset.length));
+        // WireGuard လက်ခံသော Valid Base64 Private Key ထုတ်ပေးသည့် Function
+        function generateWireGuardKey() {
+            const windowCrypto = window.crypto || window.msCrypto;
+            const values = new Uint8Array(32);
+            windowCrypto.getRandomValues(values);
+            let binary = "";
+            for (let i = 0; i < values.length; i++) {
+                binary += String.fromCharCode(values[i]);
             }
-            return key + "=";
+            return btoa(binary);
         }
 
         function generateConfig() {
@@ -49,8 +50,8 @@
             btn.innerText = "Processing...";
             
             setTimeout(() => {
-                const privKey = generateKey();
-                // Cloudflare WGCF အလုပ်လုပ်မည့် Key အမှန် (44 chars)
+                const privKey = generateWireGuardKey();
+                // Cloudflare Public Key (Always Valid)
                 const pubKey = "bmXOC+F1FxEMF9dyiK2H5/1SU6kM2D5v7S3mR4zU9cE=";
                 
                 currentConf = `[Interface]\nPrivateKey = ${privKey}\nAddress = 172.16.0.2/32\nDNS = 1.1.1.1\nMTU = 1280\n\n[Peer]\nPublicKey = ${pubKey}\nAllowedIPs = 0.0.0.0/0\nEndpoint = 162.159.192.10:500`;
@@ -68,8 +69,6 @@
         function downloadFile() {
             if (!currentConf) return;
             const filename = `Phoenix_${count}.conf`;
-            
-            // MIME type ကို အတင်းအကြပ် octet-stream သတ်မှတ်ခြင်း
             const blob = new Blob([currentConf], { type: 'application/octet-stream' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -77,12 +76,7 @@
             a.download = filename;
             document.body.appendChild(a);
             a.click();
-            
-            setTimeout(() => {
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-            }, 500);
-            
+            setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 500);
             count++;
             document.getElementById('dlBtn').innerText = "Downloaded ✅";
             setTimeout(() => { document.getElementById('dlBtn').innerText = "Download .conf File"; }, 2000);
