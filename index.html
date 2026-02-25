@@ -5,30 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Phoenix Mobile v3.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/davidshimjs-qrcodejs/0.4.2/qrcode.min.js"></script>
     <style>
         body { background-color: #0b1120; color: #f8fafc; font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .glass { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 2rem; width: 100%; max-width: 420px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-        #qrcode img { margin: 0 auto; border: 10px solid white; border-radius: 12px; }
+        .glass { background: #1e293b; border: 1px solid #334155; border-radius: 24px; padding: 2rem; width: 90%; max-width: 420px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        #qrcode { display: flex; justify-content: center; margin-bottom: 1rem; }
+        #qrcode img { border: 12px solid white; border-radius: 16px; width: 200px; height: 200px; }
     </style>
 </head>
 <body>
     <div class="glass text-center">
-        <h1 class="text-3xl font-bold text-blue-400 mb-2">Phoenix Mobile</h1>
-        <p class="text-slate-400 text-sm mb-6">WGCF Config Generator v3.5</p>
+        <h1 class="text-3xl font-extrabold text-blue-400 mb-1">Phoenix Mobile</h1>
+        <p class="text-slate-400 text-sm mb-8 font-medium">WGCF Config Generator v3.5</p>
 
-        <button onclick="generateConfig()" id="btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-xl transition-all shadow-lg active:scale-95 mb-4">
+        <button onclick="generateConfig()" id="btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-2xl transition-all shadow-lg active:scale-95 mb-6 text-lg">
             Generate Config
         </button>
 
-        <div id="result" class="hidden mt-4 text-left space-y-4">
-            <div id="qrcode" class="flex justify-center py-4 bg-white/5 rounded-xl border border-slate-700"></div>
+        <div id="result" class="hidden animate-in fade-in zoom-in duration-300">
+            <div id="qrcode" class="mb-6"></div>
 
-            <div class="bg-black/50 rounded-lg p-4 border border-slate-700 overflow-x-auto">
-                <pre id="display" class="text-[10px] text-green-400 font-mono leading-tight"></pre>
+            <div class="bg-black/40 rounded-xl p-4 mb-6 border border-slate-700">
+                <pre id="display" class="text-[10px] text-green-400 font-mono leading-tight text-left overflow-x-auto max-h-40"></pre>
             </div>
 
-            <button onclick="downloadFile()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-all active:scale-95">
+            <button onclick="downloadFile()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-2xl shadow-lg transition-all active:scale-95 text-lg">
                 Download .conf File
             </button>
         </div>
@@ -41,38 +42,45 @@
         function generateConfig() {
             const btn = document.getElementById('btn');
             btn.innerText = "Generating...";
+            btn.disabled = true;
             
+            // ခဏစောင့်ပြီး Config ထုတ်ပေးခြင်း
             setTimeout(() => {
-                const priv = btoa(Math.random().toString()).substring(0, 44);
-                currentConf = `[Interface]\nPrivateKey = ${priv}\nAddress = 172.16.0.2/32\nDNS = 1.1.1.1\nMTU = 1280\n\n[Peer]\nPublicKey = bmXOC+F1FxEMF9dyiK2H5/1SU...\nAllowedIPs = 0.0.0.0/0\nEndpoint = 162.159.192.10:500`;
-                
-                document.getElementById('display').innerText = currentConf;
-                
-                // QR Code ထုတ်လုပ်ခြင်း
-                const qrDiv = document.getElementById('qrcode');
-                qrDiv.innerHTML = ""; 
-                new QRCode(qrDiv, {
-                    text: currentConf,
-                    width: 180,
-                    height: 180,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff"
-                });
+                try {
+                    const priv = btoa(Math.random().toString() + Date.now()).substring(0, 44);
+                    currentConf = `[Interface]\nPrivateKey = ${priv}\nAddress = 172.16.0.2/32\nDNS = 1.1.1.1\nMTU = 1280\n\n[Peer]\nPublicKey = bmXOC+F1FxEMF9dyiK2H5/1SU...\nAllowedIPs = 0.0.0.0/0\nEndpoint = 162.159.192.10:500`;
+                    
+                    document.getElementById('display').innerText = currentConf;
+                    
+                    // QR Code ပြန်ဆွဲခြင်း
+                    const qrContainer = document.getElementById('qrcode');
+                    qrContainer.innerHTML = ""; 
+                    new QRCode(qrContainer, {
+                        text: currentConf,
+                        width: 200,
+                        height: 200
+                    });
 
-                document.getElementById('result').classList.remove('hidden');
-                btn.innerText = "Regenerate";
-            }, 600);
+                    document.getElementById('result').classList.remove('hidden');
+                    btn.innerText = "Regenerate";
+                } catch (e) {
+                    alert("Error: QR Code library not loaded yet. Please refresh.");
+                } finally {
+                    btn.disabled = false;
+                }
+            }, 500);
         }
 
         function downloadFile() {
             if(!currentConf) return;
             
-            // Mobile Browser များတွင် Download သေချာစေရန် Blob စနစ်သုံးခြင်း
             const blob = new Blob([currentConf], { type: 'application/x-wireguard-config' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
+            a.style.display = 'none';
             a.href = url;
-            a.download = `Phoenix_${count}.conf`; // နာမည်ကို Space မပါဘဲ ပေးထားသည်
+            a.download = `Phoenix_${count}.conf`;
+            
             document.body.appendChild(a);
             a.click();
             
