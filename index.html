@@ -3,27 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phoenix WGCF Generator</title>
+    <title>Phoenix Mobile v3.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body { background-color: #0b1120; color: #f8fafc; font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .glass { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 2rem; width: 100%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .glass { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 2rem; width: 100%; max-width: 420px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        #qrcode img { margin: 0 auto; border: 10px solid white; border-radius: 12px; }
     </style>
 </head>
 <body>
     <div class="glass text-center">
-        <h1 class="text-2xl font-bold text-blue-400 mb-2">Phoenix Mobile</h1>
-        <p class="text-slate-400 text-sm mb-8">WGCF Config Generator v3.5</p>
+        <h1 class="text-3xl font-bold text-blue-400 mb-2">Phoenix Mobile</h1>
+        <p class="text-slate-400 text-sm mb-6">WGCF Config Generator v3.5</p>
 
-        <button onclick="generateConfig()" id="btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg active:scale-95">
+        <button onclick="generateConfig()" id="btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-6 rounded-xl transition-all shadow-lg active:scale-95 mb-4">
             Generate Config
         </button>
 
-        <div id="result" class="hidden mt-8 text-left">
-            <div class="bg-black/50 rounded-lg p-4 mb-4 border border-slate-700 overflow-x-auto">
-                <pre id="display" class="text-[10px] text-green-400 font-mono"></pre>
+        <div id="result" class="hidden mt-4 text-left space-y-4">
+            <div id="qrcode" class="flex justify-center py-4 bg-white/5 rounded-xl border border-slate-700"></div>
+
+            <div class="bg-black/50 rounded-lg p-4 border border-slate-700 overflow-x-auto">
+                <pre id="display" class="text-[10px] text-green-400 font-mono leading-tight"></pre>
             </div>
-            <button onclick="downloadFile()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl">
+
+            <button onclick="downloadFile()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-all active:scale-95">
                 Download .conf File
             </button>
         </div>
@@ -34,31 +39,49 @@
         let currentConf = "";
 
         function generateConfig() {
-            document.getElementById('btn').innerText = "Generating...";
+            const btn = document.getElementById('btn');
+            btn.innerText = "Generating...";
+            
             setTimeout(() => {
-                // Cloudflare Logic (Simulated for Frontend)
                 const priv = btoa(Math.random().toString()).substring(0, 44);
                 currentConf = `[Interface]\nPrivateKey = ${priv}\nAddress = 172.16.0.2/32\nDNS = 1.1.1.1\nMTU = 1280\n\n[Peer]\nPublicKey = bmXOC+F1FxEMF9dyiK2H5/1SU...\nAllowedIPs = 0.0.0.0/0\nEndpoint = 162.159.192.10:500`;
                 
                 document.getElementById('display').innerText = currentConf;
+                
+                // QR Code ထုတ်လုပ်ခြင်း
+                const qrDiv = document.getElementById('qrcode');
+                qrDiv.innerHTML = ""; 
+                new QRCode(qrDiv, {
+                    text: currentConf,
+                    width: 180,
+                    height: 180,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff"
+                });
+
                 document.getElementById('result').classList.remove('hidden');
-                document.getElementById('btn').innerText = "Regenerate";
-            }, 800);
+                btn.innerText = "Regenerate";
+            }, 600);
         }
 
         function downloadFile() {
             if(!currentConf) return;
-            const blob = new Blob([currentConf], { type: 'application/x-wireguard-config' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
             
-            // Phoenix_1.conf ပုံစံဖြင့် နာမည်ပေးခြင်း (Space မပါစေရ)
-            a.download = `Phoenix_${count}.conf`;
+            // Mobile Browser များတွင် Download သေချာစေရန် Blob စနစ်သုံးခြင်း
+            const blob = new Blob([currentConf], { type: 'application/x-wireguard-config' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
             a.href = url;
+            a.download = `Phoenix_${count}.conf`; // နာမည်ကို Space မပါဘဲ ပေးထားသည်
+            document.body.appendChild(a);
             a.click();
             
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+
             count++;
-            URL.revokeObjectURL(url);
         }
     </script>
 </body>
