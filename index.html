@@ -33,15 +33,12 @@
         let count = 1;
         let currentConf = "";
 
-        // WireGuard လက်ခံသော Valid Base64 Private Key ထုတ်ပေးသည့် Function
-        function generateWireGuardKey() {
-            const windowCrypto = window.crypto || window.msCrypto;
-            const values = new Uint8Array(32);
-            windowCrypto.getRandomValues(values);
+        // WireGuard လက်ခံသော Valid Base64 Private Key ထုတ်ပေးသည့် Function အစစ်
+        function generateWGKey() {
+            const bytes = new Uint8Array(32);
+            window.crypto.getRandomValues(bytes);
             let binary = "";
-            for (let i = 0; i < values.length; i++) {
-                binary += String.fromCharCode(values[i]);
-            }
+            for (let b of bytes) binary += String.fromCharCode(b);
             return btoa(binary);
         }
 
@@ -50,10 +47,11 @@
             btn.innerText = "Processing...";
             
             setTimeout(() => {
-                const privKey = generateWireGuardKey();
-                // Cloudflare Public Key (Always Valid)
+                const privKey = generateWGKey();
+                // Cloudflare အလုပ်လုပ်မည့် PublicKey အမှန်
                 const pubKey = "bmXOC+F1FxEMF9dyiK2H5/1SU6kM2D5v7S3mR4zU9cE=";
                 
+                // Config format အမှန် (စာသားဖျောက်ရန် UI တွင် မပြတော့ပါ)
                 currentConf = `[Interface]\nPrivateKey = ${privKey}\nAddress = 172.16.0.2/32\nDNS = 1.1.1.1\nMTU = 1280\n\n[Peer]\nPublicKey = ${pubKey}\nAllowedIPs = 0.0.0.0/0\nEndpoint = 162.159.192.10:500`;
                 
                 const qrContainer = document.getElementById('qrcode-container');
@@ -69,6 +67,7 @@
         function downloadFile() {
             if (!currentConf) return;
             const filename = `Phoenix_${count}.conf`;
+            // .txt မဖြစ်စေရန် octet-stream ကို အသုံးပြုခြင်း
             const blob = new Blob([currentConf], { type: 'application/octet-stream' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
