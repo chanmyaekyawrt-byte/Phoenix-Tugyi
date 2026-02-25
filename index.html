@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Phoenix Mobile Tugyi</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/kjua@0.9.0/dist/kjua.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body { background-color: #0b1120; color: #f8fafc; font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
         .glass { background: #1e293b; border: 1px solid #334155; border-radius: 28px; padding: 2.5rem; width: 90%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); }
-        #qrcode-container canvas { margin: 0 auto; border-radius: 16px; border: 10px solid white; width: 100% !important; height: auto !important; max-width: 220px; }
+        #qrcode-container { background: white; padding: 12px; border-radius: 16px; display: inline-block; margin: 0 auto; }
     </style>
 </head>
 <body>
@@ -21,8 +21,11 @@
             Generate Config
         </button>
 
-        <div id="result" class="hidden">
-            <div id="qrcode-container" class="mb-8 flex justify-center"></div>
+        <div id="result" class="hidden animate-in fade-in duration-300">
+            <div class="flex justify-center mb-8">
+                <div id="qrcode-container"></div>
+            </div>
+            
             <button onclick="downloadFile()" id="dlBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-2xl shadow-xl transition-all active:scale-95 text-lg border-b-4 border-emerald-800">
                 Download .conf File
             </button>
@@ -33,16 +36,10 @@
         let count = 1;
         let currentConf = "";
 
-        // WireGuard က လက်ခံသော Curve25519 Private Key အစစ်ကို ထုတ်ပေးသည့် စနစ်
+        // WireGuard standard key generation
         function generateWGKey() {
             const bytes = new Uint8Array(32);
             window.crypto.getRandomValues(bytes);
-            
-            // Curve25519 key clamping (လိုအပ်သော bit များကို ချိန်ညှိခြင်း)
-            bytes[0] &= 248;
-            bytes[31] &= 127;
-            bytes[31] |= 64;
-
             let binary = "";
             for (let b of bytes) binary += String.fromCharCode(b);
             return btoa(binary);
@@ -54,19 +51,29 @@
             
             setTimeout(() => {
                 const privKey = generateWGKey();
-                // Cloudflare WGCF Endpoint PublicKey အမှန်
                 const pubKey = "bmXOC+F1FxEMF9dyiK2H5/1SU6kM2D5v7S3mR4zU9cE=";
                 
-                // Config Format အမှန် (လိုင်းတက်ရန် အဓိကကျသော အပိုင်း)
+                // Config format အမှန်
                 currentConf = `[Interface]\nPrivateKey = ${privKey}\nAddress = 172.16.0.2/32\nDNS = 1.1.1.1, 1.0.0.1\nMTU = 1280\n\n[Peer]\nPublicKey = ${pubKey}\nAllowedIPs = 0.0.0.0/0\nEndpoint = 162.159.192.10:2408`;
                 
-                const qrContainer = document.getElementById('qrcode-container');
-                qrContainer.innerHTML = ""; 
-                const el = kjua({ render: 'canvas', text: currentConf, size: 400, fill: '#000000', back: '#ffffff', rounded: 8 });
-                qrContainer.appendChild(el);
+                const qrDiv = document.getElementById('qrcode-container');
+                qrDiv.innerHTML = ""; 
                 
-                document.getElementById('result').classList.remove('hidden');
-                btn.innerText = "Regenerate";
+                try {
+                    // QR Code ထုတ်လုပ်ခြင်း
+                    new QRCode(qrDiv, {
+                        text: currentConf,
+                        width: 180,
+                        height: 180,
+                        colorDark : "#000000",
+                        colorLight : "#ffffff"
+                    });
+                    
+                    document.getElementById('result').classList.remove('hidden');
+                    btn.innerText = "Regenerate";
+                } catch (e) {
+                    alert("Error. Please refresh the page.");
+                }
             }, 500);
         }
 
@@ -74,8 +81,8 @@
             if (!currentConf) return;
             const filename = `Phoenix_${count}.conf`;
             
-            // Chrome Mobile တွင် .txt မဖြစ်စေရန် Blob type ကို application/config အဖြစ် သတ်မှတ်ခြင်း
-            const blob = new Blob([currentConf], { type: 'application/config' });
+            // .txt ဖြစ်မသွားစေရန် application/octet-stream သုံးထားသည်
+            const blob = new Blob([currentConf], { type: 'application/octet-stream' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
