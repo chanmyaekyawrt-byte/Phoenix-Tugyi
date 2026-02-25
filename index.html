@@ -7,12 +7,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/kjua@0.9.0/dist/kjua.min.js"></script>
     <style>
-        body { background-color: #0b1120; color: #f8fafc; font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; overflow-x: hidden; }
+        body { background-color: #0b1120; color: #f8fafc; font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
         .glass { background: #1e293b; border: 1px solid #334155; border-radius: 28px; padding: 2.5rem; width: 90%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); }
         #qrcode-container canvas { margin: 0 auto; border-radius: 16px; border: 10px solid white; width: 100% !important; height: auto !important; max-width: 220px; }
     </style>
 </head>
 <body>
+
     <div class="glass text-center">
         <h1 class="text-3xl font-extrabold text-blue-400 mb-1">Phoenix Mobile Tugyi</h1>
         <p class="text-slate-400 text-sm mb-10 font-medium">WGCF Config Generator v3.5</p>
@@ -22,10 +23,8 @@
         </button>
 
         <div id="result" class="hidden animate-in fade-in zoom-in duration-300">
-            <div id="qrcode-container" class="mb-8"></div>
-
-            <div id="hidden-display" style="display:none;"></div>
-
+            <div id="qrcode-container" class="mb-8 flex justify-center"></div>
+            
             <button onclick="downloadFile()" id="dlBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-2xl shadow-xl transition-all active:scale-95 text-lg border-b-4 border-emerald-800">
                 Download .conf File
             </button>
@@ -42,6 +41,7 @@
             
             setTimeout(() => {
                 const priv = btoa(Math.random().toString() + Date.now()).substring(0, 44);
+                // တကယ့် WireGuard Data
                 currentConf = `[Interface]\nPrivateKey = ${priv}\nAddress = 172.16.0.2/32\nDNS = 1.1.1.1\nMTU = 1280\n\n[Peer]\nPublicKey = bmXOC+F1FxEMF9dyiK2H5/1SU...\nAllowedIPs = 0.0.0.0/0\nEndpoint = 162.159.192.10:500`;
                 
                 const qrContainer = document.getElementById('qrcode-container');
@@ -57,11 +57,10 @@
                         rounded: 10
                     });
                     qrContainer.appendChild(el);
-                    
                     document.getElementById('result').classList.remove('hidden');
                     btn.innerText = "Regenerate";
                 } catch (e) {
-                    alert("Error. Please refresh.");
+                    alert("Error: Please refresh.");
                 }
             }, 400);
         }
@@ -69,34 +68,30 @@
         function downloadFile() {
             if (!currentConf) return;
 
-            // ဒေါင်းလုဒ်ဆွဲသည့် အပိုင်းကို ပိုမိုအားကောင်းအောင် ပြင်ထားသည်
             const filename = `Phoenix_${count}.conf`;
-            const blob = new Blob([currentConf], { type: 'text/plain' });
             
-            // Android Chrome အတွက် သေချာစေသော နည်းလမ်း
-            if (window.navigator && window.navigator.msSaveOrOpenBlob) {
-                window.navigator.msSaveOrOpenBlob(blob, filename);
-            } else {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                }, 300);
-            }
+            // .txt ဖြစ်မသွားစေရန် Binary type အနေဖြင့် အတင်းအကြပ် သတ်မှတ်ခြင်း
+            const blob = new Blob([currentConf], { type: 'application/octet-stream' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            
+            document.body.appendChild(a);
+            a.click();
+            
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 500);
             
             count++;
-            // ခလုတ်နှိပ်လိုက်ကြောင်း သိသာစေရန် စာသားပြောင်းပေးခြင်း
+            
             const dlBtn = document.getElementById('dlBtn');
-            const originalText = dlBtn.innerText;
-            dlBtn.innerText = "Downloaded!";
-            setTimeout(() => { dlBtn.innerText = originalText; }, 2000);
+            dlBtn.innerText = "Downloaded ✅";
+            setTimeout(() => { dlBtn.innerText = "Download .conf File"; }, 2000);
         }
     </script>
 </body>
